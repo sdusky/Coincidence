@@ -70,6 +70,7 @@ public slots:
     void create_packet_appeal_fail(QByteArray);                         //数据包生成：发布失败
     void create_packet_appeal_post(partner);                            //数据包生成：诉求推送
     void create_packet_touch(partner);                                  //数据包生成：碰一下反馈
+    void create_packet_touch_fail(partner);                             //数据包生成：下一个反馈
     void create_packet_no_happen(partner);                              //数据包生成：不巧反馈
     void create_packet_happen(partner);                                 //数据包生成：碰巧反馈
     void create_packet_information(partner);                            //数据包生成：互发名片

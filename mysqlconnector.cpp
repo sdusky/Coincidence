@@ -561,6 +561,7 @@ void MySQLConnector::get_appeal_next_from_jsonparser(appeal_info user)
     info.user1 = user;
     success_information_search(&info);
     appeal_information_search(&info);
+    emit touch_no_happen_to_jsonparser(info);
 
     //重置appeal表中appealStatus的值为0
     appeal_information_update(info,"0");
