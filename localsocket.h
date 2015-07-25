@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <common.h>
+#include <QHostAddress>
 class LocalSocket : public QTcpSocket
 {
     Q_OBJECT

@@ -111,7 +111,7 @@ bool MySQLConnector::user_information_search(user_info info)
         return false;
     }
     search_query.next();
-    info.user_phonenumber = search_query.value(0).toString().toLatin1();
+    info.user_phonenumber.append(search_query.value(0).toString());
     emit send_personal_phone_to_jsonparser(info);
     return true;
 }
@@ -171,21 +171,48 @@ bool MySQLConnector::appeal_information_check(appeal_info appeal)
     return true;
 }
 
+bool MySQLConnector::get_sexual_by_nickname(QByteArray user_name, user_info *info)
+{
+    info->user_account = user_name;
+
+    QSqlQuery get_query;
+
+    QString sql_get;
+    sql_get.append("SELECT sexual FROM user WHERE userAccount = '");
+    sql_get.append(user_name);
+    sql_get.append("'");
+
+    get_query.exec(sql_get);
+
+    if(get_query.size() <= 0)
+    {
+        return false;
+    }
+
+    get_query.next();
+
+    info->user_sexual.append(get_query.value(0).toString());
+    return true;
+}
+
 bool MySQLConnector::appeal_information_insert(appeal_info appeal)
 {
     QSqlQuery insert_query;
 
+    user_info info;
+    get_sexual_by_nickname(appeal.user_account,&info);
     //拼接插入字符串 用户ID，发布时间，诉求日期，诉求时间，城市，区域，地点，事件，诉求性别，诉求状态
     ///诉求状态0为新发布，1为匹配
     QString sql_insert;
     sql_insert.clear();
-    sql_insert.append("INSERT INTO appeal (userAccount,issueTime,appealDate,appealTime,city,area,location,toDo,appealSexual,appealStatus) ");
-    sql_insert.append("VALUES (?,?,?,?,?,?,?,?,?,?)");
+    sql_insert.append("INSERT INTO appeal (userAccount,userSexual,issueTime,appealDate,appealTime,city,area,location,toDo,appealSexual,appealStatus) ");
+    sql_insert.append("VALUES (?,?,?,?,?,?,?,?,?,?,?)");
 
     insert_query.prepare(sql_insert);
 
     //绑定字段数据
     insert_query.addBindValue(appeal.user_account);
+    insert_query.addBindValue(info.user_sexual);
     insert_query.addBindValue(appeal.issue_time);
     insert_query.addBindValue(appeal.appeal_date);
     insert_query.addBindValue(appeal.appeal_time);
@@ -261,21 +288,42 @@ bool MySQLConnector::appeal_information_search(appeal_info appeal)
 
     QString sql_search;
     sql_search.clear();
-    sql_search.append("SELECT appealID , userAccount , remarks FROM appeal WHERE appealDate = '");
-    sql_search.append(appeal.appeal_date);
-    sql_search.append("' AND appealTime = '");
-    sql_search.append(appeal.appeal_time);
-    sql_search.append("' AND city = '");
-    sql_search.append(appeal.appeal_city);
-    sql_search.append("' AND location = '");
-    sql_search.append(appeal.appeal_location);
-    sql_search.append("' AND toDo = '");
-    sql_search.append(appeal.appeal_thing);
-    sql_search.append("' AND appealStatus = '");
-    sql_search.append("0' AND userAccount <>'");
-    sql_search.append(appeal.user_account);
-    sql_search.append("'");
-
+    if(appeal.appeal_sexual.toLower() != "all")
+    {
+        sql_search.append("SELECT appealID , userAccount , remarks FROM appeal WHERE appealDate = '");
+        sql_search.append(appeal.appeal_date);
+        sql_search.append("' AND appealTime = '");
+        sql_search.append(appeal.appeal_time);
+        sql_search.append("' AND city = '");
+        sql_search.append(appeal.appeal_city);
+        sql_search.append("' AND location = '");
+        sql_search.append(appeal.appeal_location);
+        sql_search.append("' AND toDo = '");
+        sql_search.append(appeal.appeal_thing);
+        sql_search.append("' AND appealStatus = '");
+        sql_search.append("0' AND userAccount <>'");
+        sql_search.append(appeal.user_account);
+        sql_search.append("' AND userSexual = '");
+        sql_search.append(appeal.appeal_sexual);
+        sql_search.append("'");
+    }
+    else
+    {
+        sql_search.append("SELECT appealID , userAccount , remarks FROM appeal WHERE appealDate = '");
+        sql_search.append(appeal.appeal_date);
+        sql_search.append("' AND appealTime = '");
+        sql_search.append(appeal.appeal_time);
+        sql_search.append("' AND city = '");
+        sql_search.append(appeal.appeal_city);
+        sql_search.append("' AND location = '");
+        sql_search.append(appeal.appeal_location);
+        sql_search.append("' AND toDo = '");
+        sql_search.append(appeal.appeal_thing);
+        sql_search.append("' AND appealStatus = '");
+        sql_search.append("0' AND userAccount <>'");
+        sql_search.append(appeal.user_account);
+        sql_search.append("'");
+    }
 
     search_query.exec(sql_search);
 
@@ -295,8 +343,8 @@ bool MySQLConnector::appeal_information_search(appeal_info appeal)
     info.user1                  = appeal;
     info.user1.appeal_id = get_appeal_information_appealid(appeal);
     info.user2.appeal_id        = search_query.value(0).toString().toInt();
-    info.user2.user_account     = search_query.value(1).toString().toLatin1();
-    info.user2.appeal_remark    = search_query.value(2).toString().toLatin1();
+    info.user2.user_account.append(search_query.value(1).toString());
+    info.user2.appeal_remark.append(search_query.value(2).toString());
 
     //更新appeal表appealStatus字段
     appeal_information_update(info,"1");
@@ -326,13 +374,13 @@ void MySQLConnector::appeal_information_search(partner *info)
     }
 
     search_query.next();
-    info->user1.user_account    = search_query.value(0).toString().toLatin1();
-    info->user1.appeal_date     = search_query.value(1).toString().toLatin1();
-    info->user1.appeal_time     = search_query.value(2).toString().toLatin1();
-    info->user1.appeal_location = search_query.value(3).toString().toLatin1();
-    info->user1.appeal_thing    = search_query.value(4).toString().toLatin1();
-    info->user1.appeal_remark   = search_query.value(5).toString().toLatin1();
-    info->user1.appeal_sexual   = search_query.value(6).toString().toLatin1();
+    info->user1.user_account.append(search_query.value(0).toString());
+    info->user1.appeal_date.append(search_query.value(1).toString());
+    info->user1.appeal_time.append(search_query.value(2).toString());
+    info->user1.appeal_location.append(search_query.value(3).toString());
+    info->user1.appeal_thing.append(search_query.value(4).toString());
+    info->user1.appeal_remark.append(search_query.value(5).toString());
+    info->user1.appeal_sexual.append(search_query.value(6).toString());
 
     sql_search.clear();
     sql_search.append("SELECT userAccount,appealDate,appealTime,location,toDo,remarks,appealSexual FROM appeal WHERE appealID = '");
@@ -347,13 +395,13 @@ void MySQLConnector::appeal_information_search(partner *info)
     }
 
     search_query.next();
-    info->user2.user_account    = search_query.value(0).toString().toLatin1();
-    info->user2.appeal_date     = search_query.value(1).toString().toLatin1();
-    info->user2.appeal_time     = search_query.value(2).toString().toLatin1();
-    info->user2.appeal_location = search_query.value(3).toString().toLatin1();
-    info->user2.appeal_thing    = search_query.value(4).toString().toLatin1();
-    info->user2.appeal_remark   = search_query.value(5).toString().toLatin1();
-    info->user2.appeal_sexual   = search_query.value(6).toString().toLatin1();
+    info->user2.user_account.append(search_query.value(0).toString());
+    info->user2.appeal_date.append(search_query.value(1).toString());
+    info->user2.appeal_time.append(search_query.value(2).toString());
+    info->user2.appeal_location.append(search_query.value(3).toString());
+    info->user2.appeal_thing.append(search_query.value(4).toString());
+    info->user2.appeal_remark.append(search_query.value(5).toString());
+    info->user2.appeal_sexual.append(search_query.value(6).toString());
 }
 
 //
@@ -391,7 +439,7 @@ void MySQLConnector::get_phone_number(partner * info)
 
     need_query.exec(sql_need);
     need_query.next();
-    info->user1.user_information.user_phonenumber = need_query.value(0).toString().toLatin1();
+    info->user1.user_information.user_phonenumber.append(need_query.value(0).toString());
 
 
     sql_need.clear();
@@ -401,7 +449,7 @@ void MySQLConnector::get_phone_number(partner * info)
 
     need_query.exec(sql_need);
     need_query.next();
-    info->user2.user_information.user_phonenumber = need_query.value(0).toString().toLatin1();
+    info->user2.user_information.user_phonenumber.append(need_query.value(0).toString());
 }
 
 /*
@@ -416,7 +464,6 @@ void MySQLConnector::get_phone_number(partner * info)
  */
 void MySQLConnector::success_information_update(partner info, QString status)
 {
-
     if(status.toInt() == -1)
     {
         success_information_delete(info);

@@ -37,10 +37,11 @@ void LocalSocket::catch_server_close_signal()
 
 void LocalSocket::connect_to_server(int port)
 {
-    connectToHost("127.0.0.1",port);
+    //connectToHost("127.0.0.1",port);
+    connectToHost("172.28.141.2",port);
 
     if(!waitForConnected(3000))
-    {
+    {        
         emit connect_to_server_error("Connect to localhost error! Please check your server!");
     }
     else

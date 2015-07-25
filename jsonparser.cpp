@@ -55,13 +55,13 @@ void JsonParser::get_message_from_localsocket(QByteArray json_byte)
 //解析用户信息
 void JsonParser::get_user_info(user_info *info,QJsonObject json_obj)
 {
-    info->user_account       = json_obj.take("nickname").toString().toLatin1();
-    info->user_name          = json_obj.take("username").toString().toLatin1();
-    info->user_phonenumber   = json_obj.take("phone").toString().toLatin1();
-    info->user_password      = json_obj.take("password").toString().toLatin1();
-    info->user_sexual        = json_obj.take("gender").toString().toLatin1();
-    info->user_verifycode    = json_obj.take("code").toString().toLatin1();
-    info->user_company       = "360";                            //default
+    info->user_account.append(json_obj.value("nickname").toString());
+    info->user_name.append(json_obj.value("username").toString());
+    info->user_phonenumber.append(json_obj.value("phone").toString().toLatin1());
+    info->user_password.append(json_obj.value("password").toString().toLatin1());
+    info->user_sexual.append(json_obj.value("gender").toString().toLatin1());
+    info->user_verifycode.append(json_obj.value("code").toString().toLatin1());
+    info->user_company.append("360");                            //default
 
 #if DEBUG
     qDebug()<<"----------user_info---------------";
@@ -75,15 +75,15 @@ void JsonParser::get_user_info(user_info *info,QJsonObject json_obj)
 //获取诉求信息
 void JsonParser::get_appeal_info(appeal_info *info, QJsonObject json_obj)
 {
-    info->user_account      = json_obj.take("nickname").toString().toLatin1();
-    info->appeal_date       = json_obj.take("date").toString().toLatin1();
-    info->appeal_time       = json_obj.take("time").toString().toLatin1();
-    info->appeal_thing      = json_obj.take("event").toString().toLatin1();
-    info->appeal_sexual     = json_obj.take("appeal_gender").toString().toLatin1();
-    info->appeal_location   = json_obj.take("location").toString().toLatin1();
-    info->appeal_remark     = json_obj.take("remarks").toString().toLatin1();
+    info->user_account.append(json_obj.take("nickname").toString());
+    info->appeal_date.append(json_obj.take("date").toString());
+    info->appeal_time.append(json_obj.take("time").toString());
+    info->appeal_thing.append(json_obj.take("event").toString());
+    info->appeal_sexual.append(json_obj.take("appeal_gender").toString());
+    info->appeal_location.append(json_obj.take("location").toString());
+    info->appeal_remark.append(json_obj.take("remarks").toString());
     info->issue_time        = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss").toLatin1();
-    info->appeal_city       = "BeiJing";                  //default
+    info->appeal_city.append("BeiJing");                  //default
     info->appeal_status     = "0";
 
 #if DEBUG
@@ -101,8 +101,8 @@ void JsonParser::get_appeal_info(appeal_info *info, QJsonObject json_obj)
 
 void JsonParser::get_partner_info(partner *info,QJsonObject json_obj)
 {
-    info->user1.user_account = json_obj.take("nickname").toString().toLatin1();
-    info->user2.user_account = json_obj.take("touch_nickname").toString().toLatin1();
+    info->user1.user_account.append(json_obj.take("nickname").toString());
+    info->user2.user_account.append(json_obj.take("touch_nickname").toString());
 #if DEBUG
     qDebug()<<"----------partner_info---------------";
     qDebug()<<"user1.user_account:  "<<info->user1.user_account;
@@ -274,10 +274,10 @@ void JsonParser::create_packet_appeal_post(partner user)
 
     QJsonObject json_obj_partner;
 
-    json_obj_partner.insert("flag"       ,   QString("appeal_post"));
-    json_obj_partner.insert("nickname"   ,   QString(user.user2.user_account));
-    json_obj_partner.insert("partner"    ,   QString(user.user1.user_account));
-    json_obj_partner.insert("remarks"    ,   QString(user.user1.appeal_remark));
+    json_obj_partner.insert("flag"              ,   QString("appeal_post"));
+    json_obj_partner.insert("nickname"          ,   QString(user.user2.user_account));
+    json_obj_partner.insert("touch_nickname"    ,   QString(user.user1.user_account));
+    json_obj_partner.insert("remarks"           ,   QString(user.user1.appeal_remark));
 
     emit post_message_to_localsocket(json_obj);
     emit post_message_to_localsocket(json_obj_partner);

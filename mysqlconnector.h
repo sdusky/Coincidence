@@ -21,6 +21,7 @@ private:
     bool user_register_insert(user_info);                   //插入
     bool user_login_check(user_info);                       //检查
     bool user_information_search(user_info );               //检索信息
+    bool get_sexual_by_nickname(QByteArray, user_info *);   //查询性别
 
     //appeal表操作
     bool appeal_information_check(appeal_info);             //检查

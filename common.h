@@ -46,7 +46,7 @@ const QString HostName = "localhost";
 const QString Password = "Password123456789";
 const QString UserName = "root";
 
-const int server_port = 10000;
+const int server_port = 10005;
 
 const int REGISTER    = 0;
 const int LOGIN       = 1;
