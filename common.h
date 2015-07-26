@@ -16,6 +16,7 @@ struct user_info{
 
 struct appeal_info{
     QByteArray user_account;
+    QByteArray user_sexual;
     QByteArray issue_time;
     QByteArray appeal_date;
     QByteArray appeal_time;

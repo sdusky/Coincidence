@@ -7,6 +7,9 @@
 #include <QSqlError>
 #include <QTime>
 #include <common.h>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QTimer>
 
 class MySQLConnector : public QObject
 {
@@ -36,9 +39,13 @@ private:
     int  success_information_check(partner);                //更新
     void success_information_delete(partner);               //删除
     void success_information_search(partner *);             //配对信息查询
+    void get_success_information(QJsonArray *);             //生成成功列表
 
     int get_appeal_information_appealid(appeal_info);       //获取IP
     void get_phone_number(partner *);                       //获取电话
+
+
+    QTimer *match_timer;
 signals:
     void connect_to_db_error(QString);                      //系统错误：数据库连接错误
 
@@ -49,7 +56,7 @@ signals:
     void user_password_check_error(QByteArray);             //信息错误：密码错误，登录失败
         //下行信号
     void user_info_insert_success(QByteArray);              //注册成功，返回用户账号
-    void user_info_login_success(QByteArray);               //登录成功，返回用户账号及当前匹配上的人
+    void user_info_login_success(QByteArray,QJsonArray);    //登录成功，返回用户账号及当前匹配上的人
 
     //诉求信息信号
         //错误信息
@@ -82,6 +89,8 @@ public slots:
     void get_appeal_happen_from_jsonparser(partner);        //碰巧信号处理函数
     void get_appeal_no_happen_from_jsonparser(partner);     //不巧信号处理函数
     void get_user_information_from_jsonparser(user_info);   //获取用户信息处理函数
+    void find_partner();                                    //数据库中查找两个人
+
 
 };
 

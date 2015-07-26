@@ -91,8 +91,8 @@ int main(int argc, char *argv[])
     QObject::connect(&mysql_connector,SIGNAL(user_info_insert_success(QByteArray)),
                      &json_parser,SLOT(create_packet_register_success(QByteArray)));
     //                                  用户登录成功
-    QObject::connect(&mysql_connector,SIGNAL(user_info_login_success(QByteArray)),
-                     &json_parser,SLOT(create_packet_login_success(QByteArray)));
+    QObject::connect(&mysql_connector,SIGNAL(user_info_login_success(QByteArray,QJsonArray)),
+                     &json_parser,SLOT(create_packet_login_success(QByteArray,QJsonArray)));
     //                                  诉求发布成功
     QObject::connect(&mysql_connector,SIGNAL(appeal_insert_success(appeal_info)),
                      &json_parser,SLOT(create_packet_appeal_success(appeal_info)));

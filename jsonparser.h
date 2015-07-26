@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QJsonArray>
 #include <QDebug>
 #include <QStringList>
 #include <QMap>
@@ -64,7 +65,7 @@ public slots:
 
     void create_packet_register_success(QByteArray);                    //数据包生成：注册成功
     void create_packet_register_fail();                                 //数据包生成：注册失败
-    void create_packet_login_success(QByteArray);                       //数据包生成：登录成功
+    void create_packet_login_success(QByteArray,QJsonArray);            //数据包生成：登录成功
     void create_packet_login_fail(QByteArray);                          //数据包生成：登录失败
     void create_packet_appeal_success(appeal_info);                     //数据包生成：发布成功
     void create_packet_appeal_fail(QByteArray);                         //数据包生成：发布失败

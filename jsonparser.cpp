@@ -103,6 +103,8 @@ void JsonParser::get_partner_info(partner *info,QJsonObject json_obj)
 {
     info->user1.user_account.append(json_obj.take("nickname").toString());
     info->user2.user_account.append(json_obj.take("touch_nickname").toString());
+    info->user1.appeal_time.append(json_obj.take("time").toString());
+    info->user1.appeal_date.append(json_obj.take("date").toString());
 #if DEBUG
     qDebug()<<"----------partner_info---------------";
     qDebug()<<"user1.user_account:  "<<info->user1.user_account;
@@ -203,12 +205,13 @@ void JsonParser::create_packet_register_success(QByteArray user_name)
 }
 
 //数据包生成：登录成功
-void JsonParser::create_packet_login_success(QByteArray user_name)
+void JsonParser::create_packet_login_success(QByteArray user_name,QJsonArray success_array)
 {
     QJsonObject json_obj;
 
     json_obj.insert("flag"      ,   QString("login_ok"));
     json_obj.insert("nickname"  ,   QString(user_name));
+    json_obj.insert("paired"    ,   success_array);
 
     //TODO 添加当前已配对成功的信息，需要数据库造数据
     emit post_message_to_localsocket(json_obj);
@@ -256,31 +259,43 @@ void JsonParser::create_packet_appeal_fail(QByteArray err)
 //数据包生成：推送用户信息,一对，生成两个数据包
 void JsonParser::create_packet_appeal_post(partner user)
 {
-    QJsonObject json_obj;
-    if(user.user1.appeal_remark == "")
-    {
-        user.user1.appeal_remark.append("-");
-    }
+    QJsonObject json_obj_nickname;
 
-    if(user.user2.appeal_remark == "")
-    {
-        user.user2.appeal_remark.append("-");
-    }
+    json_obj_nickname.insert("nickname"           ,      QString(user.user1.user_account));
+    json_obj_nickname.insert("appeal_nickname"    ,      QString(user.user2.user_account));
+    json_obj_nickname.insert("date"               ,      QString(user.user2.appeal_date));
+    json_obj_nickname.insert("time"               ,      QString(user.user2.appeal_time));
+    json_obj_nickname.insert("city"               ,      QString(user.user2.appeal_city));
+    json_obj_nickname.insert("area"               ,      QString(user.user2.appeal_area));
+    json_obj_nickname.insert("location"           ,      QString(user.user2.appeal_location));
+    json_obj_nickname.insert("event"              ,      QString(user.user2.appeal_thing));
+    json_obj_nickname.insert("remarks"            ,      QString(user.user2.appeal_remark));
 
-    json_obj.insert("flag"       ,   QString("appeal_post"));
-    json_obj.insert("nickname"   ,   QString(user.user1.user_account));
-    json_obj.insert("partner"    ,   QString(user.user2.user_account));
-    json_obj.insert("remarks"    ,   QString(user.user2.appeal_remark));
+    QJsonObject json_obj_appeal_nickname;
 
-    QJsonObject json_obj_partner;
+    json_obj_appeal_nickname.insert("nickname"           ,      QString(user.user2.user_account));
+    json_obj_appeal_nickname.insert("appeal_nickname"    ,      QString(user.user1.user_account));
+    json_obj_appeal_nickname.insert("date"               ,      QString(user.user1.appeal_date));
+    json_obj_appeal_nickname.insert("time"               ,      QString(user.user1.appeal_time));
+    json_obj_appeal_nickname.insert("city"               ,      QString(user.user1.appeal_city));
+    json_obj_appeal_nickname.insert("area"               ,      QString(user.user1.appeal_area));
+    json_obj_appeal_nickname.insert("location"           ,      QString(user.user1.appeal_location));
+    json_obj_appeal_nickname.insert("event"              ,      QString(user.user1.appeal_thing));
+    json_obj_appeal_nickname.insert("remarks"            ,      QString(user.user1.appeal_remark));
 
-    json_obj_partner.insert("flag"              ,   QString("appeal_post"));
-    json_obj_partner.insert("nickname"          ,   QString(user.user2.user_account));
-    json_obj_partner.insert("touch_nickname"    ,   QString(user.user1.user_account));
-    json_obj_partner.insert("remarks"           ,   QString(user.user1.appeal_remark));
+    QJsonArray json_array_nickname;
+    QJsonArray json_array_appeal_nickname;
+    json_array_nickname.insert(0,json_obj_nickname);
+    json_array_appeal_nickname.insert(0,json_obj_appeal_nickname);
 
-    emit post_message_to_localsocket(json_obj);
-    emit post_message_to_localsocket(json_obj_partner);
+    QJsonObject json_obj_send;
+    json_obj_send.insert("flag"                         ,       QString("appeal_ok"));
+    json_obj_send.insert("nickname"                     ,       QString(user.user1.user_account));
+    json_obj_send.insert("appeal_nickname"              ,       QString(user.user2.user_account));
+    json_obj_send.insert("nickname_flag"                ,       json_array_nickname);
+    json_obj_send.insert("appeal_nicknameflag"          ,       json_array_appeal_nickname);
+
+    emit post_message_to_localsocket(json_obj_send);
 }
 
 //数据包生成：碰一下反馈
@@ -295,22 +310,45 @@ void JsonParser::create_packet_touch(partner info)
     emit post_message_to_localsocket(json_obj);
 }
 
-void JsonParser::create_packet_touch_fail(partner info)
+void JsonParser::create_packet_touch_fail(partner user)
 {
-    QJsonObject json_obj;
+    QJsonObject json_obj_nickname;
 
-    json_obj.insert("flag"              ,   QString("touch_fail"));
-    json_obj.insert("nickname"          ,   QString(info.user1.user_account));
-    json_obj.insert("touch_nickname"    ,   QString(info.user2.user_account));
+    json_obj_nickname.insert("nickname"           ,      QString(user.user1.user_account));
+    json_obj_nickname.insert("next_nickname"      ,      QString(user.user2.user_account));
+    json_obj_nickname.insert("date"               ,      QString(user.user2.appeal_date));
+    json_obj_nickname.insert("time"               ,      QString(user.user2.appeal_time));
+    json_obj_nickname.insert("city"               ,      QString(user.user2.appeal_city));
+    json_obj_nickname.insert("area"               ,      QString(user.user2.appeal_area));
+    json_obj_nickname.insert("location"           ,      QString(user.user2.appeal_location));
+    json_obj_nickname.insert("event"              ,      QString(user.user2.appeal_thing));
+    json_obj_nickname.insert("remarks"            ,      QString(user.user2.appeal_remark));
 
-    QJsonObject json_obj_partner;
+    QJsonObject json_obj_next_nickname;
 
-    json_obj_partner.insert("flag"              ,   QString("touch_fail"));
-    json_obj_partner.insert("nickname"          ,   QString(info.user2.user_account));
-    json_obj_partner.insert("touch_nickname"    ,   QString(info.user1.user_account));
+    json_obj_next_nickname.insert("nickname"           ,      QString(user.user2.user_account));
+    json_obj_next_nickname.insert("next_nickname"      ,      QString(user.user1.user_account));
+    json_obj_next_nickname.insert("date"               ,      QString(user.user1.appeal_date));
+    json_obj_next_nickname.insert("time"               ,      QString(user.user1.appeal_time));
+    json_obj_next_nickname.insert("city"               ,      QString(user.user1.appeal_city));
+    json_obj_next_nickname.insert("area"               ,      QString(user.user1.appeal_area));
+    json_obj_next_nickname.insert("location"           ,      QString(user.user1.appeal_location));
+    json_obj_next_nickname.insert("event"              ,      QString(user.user1.appeal_thing));
+    json_obj_next_nickname.insert("remarks"            ,      QString(user.user1.appeal_remark));
 
-    emit post_message_to_localsocket(json_obj);
-    emit post_message_to_localsocket(json_obj_partner);
+    QJsonArray json_array_nickname;
+    QJsonArray json_array_next_nickname;
+    json_array_nickname.insert(0,json_obj_nickname);
+    json_array_next_nickname.insert(0,json_obj_next_nickname);
+
+    QJsonObject json_obj_send;
+    json_obj_send.insert("flag"                         ,       QString("next_ok"));
+    json_obj_send.insert("nickname"                     ,       QString(user.user1.user_account));
+    json_obj_send.insert("next_nickname"                ,       QString(user.user2.user_account));
+    json_obj_send.insert("nickname_flag"                ,       json_array_nickname);
+    json_obj_send.insert("appeal_nicknameflag"          ,       json_array_next_nickname);
+
+    emit post_message_to_localsocket(json_obj_send);
 }
 
 //数据包生成：碰巧反馈
@@ -375,14 +413,6 @@ void JsonParser::create_packet_start_chat(partner user)
     QJsonObject json_obj;
 
     json_obj.insert("flag"              ,   QString("chat"));
-    if(user.user1.user_account == "")
-    {
-        user.user1.user_account = "-";
-    }
-    if(user.user2.user_account == "")
-    {
-        user.user2.user_account = "-";
-    }
     json_obj.insert("nickname"          ,   QString(user.user1.user_account));
     json_obj.insert("touch_nickname"    ,   QString(user.user2.user_account));
 

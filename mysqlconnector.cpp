@@ -11,8 +11,38 @@ MySQLConnector::MySQLConnector(QObject *parent) :
     }
     else
     {
+        match_timer = new QTimer;
+        connect(match_timer,SIGNAL(timeout()),this,SLOT(find_partner()));
+        match_timer->start(10000);
         qDebug("Connect to mysql!");
     }
+
+}
+
+void MySQLConnector::find_partner()
+{
+    QSqlQuery find_query;
+    appeal_info info;
+    QString sql_find;
+
+    find_query.exec("SELECT *FROM where appealStatus = '0'");
+    if(find_query.size() <= 0)
+    {
+        return;
+    }
+    find_query.next();
+    info.user_account.append(find_query.value(1).toString());
+    info.user_sexual.append(find_query.value(2).toString());
+    info.appeal_date.append(find_query.value(4).toString());
+    info.appeal_time.append(find_query.value(5).toString());
+    info.appeal_city.append(find_query.value(6).toString());
+    info.appeal_area.append(find_query.value(7).toString());
+    info.appeal_location.append(find_query.value(8).toString());
+    info.appeal_thing.append(find_query.value(9).toString());
+    info.appeal_remark.append(find_query.value(10).toString());
+    info.appeal_sexual.append(find_query.value(11).toString());
+
+    appeal_information_search(info);
 
 }
 
@@ -90,8 +120,10 @@ bool MySQLConnector::user_login_check(user_info user)
         emit user_password_check_error(user.user_account);
         return false;
     }
+    QJsonArray json_array;
+    get_success_information(&json_array);
 
-    emit user_info_login_success(user.user_account);
+    emit user_info_login_success(user.user_account,json_array);
     return true;
 }
 
@@ -290,7 +322,7 @@ bool MySQLConnector::appeal_information_search(appeal_info appeal)
     sql_search.clear();
     if(appeal.appeal_sexual.toLower() != "all")
     {
-        sql_search.append("SELECT appealID , userAccount , remarks FROM appeal WHERE appealDate = '");
+        sql_search.append("SELECT * FROM appeal WHERE appealDate = '");
         sql_search.append(appeal.appeal_date);
         sql_search.append("' AND appealTime = '");
         sql_search.append(appeal.appeal_time);
@@ -309,7 +341,7 @@ bool MySQLConnector::appeal_information_search(appeal_info appeal)
     }
     else
     {
-        sql_search.append("SELECT appealID , userAccount , remarks FROM appeal WHERE appealDate = '");
+        sql_search.append("SELECT * FROM appeal WHERE appealDate = '");
         sql_search.append(appeal.appeal_date);
         sql_search.append("' AND appealTime = '");
         sql_search.append(appeal.appeal_time);
@@ -344,7 +376,15 @@ bool MySQLConnector::appeal_information_search(appeal_info appeal)
     info.user1.appeal_id = get_appeal_information_appealid(appeal);
     info.user2.appeal_id        = search_query.value(0).toString().toInt();
     info.user2.user_account.append(search_query.value(1).toString());
-    info.user2.appeal_remark.append(search_query.value(2).toString());
+    info.user2.user_sexual.append(search_query.value(2).toString());
+    info.user2.appeal_date.append(search_query.value(4).toString());
+    info.user2.appeal_time.append(search_query.value(5).toString());
+    info.user2.appeal_city.append(search_query.value(6).toString());
+    info.user2.appeal_area.append(search_query.value(7).toString());
+    info.user2.appeal_location.append(search_query.value(8).toString());
+    info.user2.appeal_thing.append(search_query.value(9).toString());
+    info.user2.appeal_remark.append(search_query.value(10).toString());
+    info.user2.appeal_sexual.append(search_query.value(11).toString());
 
     //更新appeal表appealStatus字段
     appeal_information_update(info,"1");
@@ -585,6 +625,59 @@ void MySQLConnector::success_information_delete(partner info)
 
 }
 
+void MySQLConnector::get_success_information(QJsonArray * json_array)
+{
+    QSqlQuery search_query;
+
+    QString sql_search;
+    sql_search.append("SELECT appealID1,userAccount1,userAccount2 FROM successlist WHERE appealStatus = '4' ORDER BY successListID DESC LIMIT 3");
+
+    search_query.exec(sql_search);
+
+    if(search_query.size() <= 0)
+    {
+        return;
+    }
+
+    while(search_query.next())
+    {
+        QString appealID     = search_query.value(0).toString();
+        QString userAccount1 = search_query.value(1).toString();
+        QString userAccount2 = search_query.value(2).toString();
+
+        QSqlQuery get_query;
+
+        QString sql_get;
+        sql_get.append("SELECT userSexual,appealSexual,appealDate,appealTime,location,toDo WHERE appealID = ");
+        sql_get.append(appealID);
+
+        get_query.exec(sql_get);
+
+        if(get_query.size() < 0)
+        {
+            return;
+        }
+        int i = 0;
+        while(get_query.next() && i < 3)
+        {
+            QJsonObject json_obj;
+
+            json_obj.insert("nickname_1"    ,   userAccount1);
+            json_obj.insert("gender_1"      ,   get_query.value(0).toString());
+            json_obj.insert("nickname_2"    ,   userAccount2);
+            json_obj.insert("gender_2"      ,   get_query.value(1).toString());
+            json_obj.insert("date"          ,   get_query.value(2).toString());
+            json_obj.insert("time"          ,   get_query.value(3).toString());
+            json_obj.insert("location"      ,   get_query.value(4).toString());
+            json_obj.insert("event"         ,   get_query.value(5).toString());
+
+            json_array->insert(i++          ,   json_obj);
+        }
+
+
+    }
+}
+
 //用户注册处理函数：用户信息插入user表，如果出现异常则说明用户已存在
 void MySQLConnector::get_user_register_from_jsonparser(user_info info)
 {
@@ -613,8 +706,7 @@ void MySQLConnector::get_appeal_next_from_jsonparser(appeal_info user)
     //重置appeal表中appealStatus的值为0
     appeal_information_update(info,"0");
     //success表中记录删除
-    success_information_update(info,"-1");
-
+    success_information_update(info,"-1");   
 }
 //碰一下处理函数：更新表success
 void MySQLConnector::get_touch_to_happen_from_jsonparser(partner info)
