@@ -13,6 +13,7 @@ JsonParser::JsonParser(QObject *parent) :
     map.insert("happened"       ,   7);
     map.insert("no_happened"    ,   8);
     map.insert("userinfo"       ,   9);
+    map.insert("appeal_delete"  ,   10);
 
     qDebug("JsonParser object initialized!");
 }
@@ -47,6 +48,7 @@ void JsonParser::get_message_from_localsocket(QByteArray json_byte)
             case 7:appeal_happen(json_obj)      ;break;
             case 8:appeal_no_happen(json_obj)   ;break;
             case 9:user_informtion(json_obj)    ;break;
+            case 10:appeal_delete(json_obj)     ;break;
             default:                             break;
             }
         }
@@ -83,7 +85,7 @@ void JsonParser::get_appeal_info(appeal_info *info, QJsonObject json_obj)
     info->appeal_location.append(json_obj.take("location").toString());
     info->appeal_remark.append(json_obj.take("remarks").toString());
     info->issue_time        = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss").toLatin1();
-    info->appeal_city.append("BeiJing");                  //default
+    info->appeal_city.append(json_obj.take("city").toString());
     info->appeal_status     = "0";
 
 #if DEBUG
@@ -105,11 +107,6 @@ void JsonParser::get_partner_info(partner *info,QJsonObject json_obj)
     info->user2.user_account.append(json_obj.take("touch_nickname").toString());
     info->user1.appeal_time.append(json_obj.take("time").toString());
     info->user1.appeal_date.append(json_obj.take("date").toString());
-#if DEBUG
-    qDebug()<<"----------partner_info---------------";
-    qDebug()<<"user1.user_account:  "<<info->user1.user_account;
-    qDebug()<<"user2.user_account:  "<<info->user2.user_account;
-#endif
 }
 
 //0.用户注册
@@ -140,10 +137,11 @@ void JsonParser::appeal_issue(QJsonObject json_obj)
 //4.下一个同伴
 void JsonParser::appeal_next(QJsonObject json_obj)
 {
-    appeal_info info;
-    get_appeal_info(&info,json_obj);
+    partner info;
+    get_partner_info(&info,json_obj);
 
-    emit appeal_next_to_mysqlconnector(info);
+    QJsonObject json_send;
+    emit appeal_next_to_mysqlconnector(info.user1);
 }
 
 //6.碰一下
@@ -182,6 +180,14 @@ void JsonParser::user_informtion(QJsonObject json_obj)
     emit user_information_to_mysqlconnector(info);
 }
 
+void JsonParser::appeal_delete(QJsonObject json_obj)
+{
+    appeal_info info;
+    get_appeal_info(&info,json_obj);
+
+    emit appeal_issue_cancle_to_mysqlconnector(info);
+}
+
 //数据包生成：注册失败
 void JsonParser::create_packet_register_fail()
 {
@@ -209,7 +215,7 @@ void JsonParser::create_packet_login_success(QByteArray user_name,QJsonArray suc
 {
     QJsonObject json_obj;
 
-    json_obj.insert("flag"      ,   QString("login_ok"));
+    json_obj.insert("flag"      ,   QString("direct_login_ok"));
     json_obj.insert("nickname"  ,   QString(user_name));
     json_obj.insert("paired"    ,   success_array);
 
@@ -233,7 +239,7 @@ void JsonParser::create_packet_appeal_success(appeal_info info)
 {
     QJsonObject json_obj;
 
-    json_obj.insert("flag"       ,   QString("appeal_ok"));
+    json_obj.insert("flag"       ,   QString("appeal_success"));
     json_obj.insert("nickname"   ,   QString(info.user_account));
     json_obj.insert("date"       ,   QString(info.appeal_date));
     json_obj.insert("time"       ,   QString(info.appeal_time));
@@ -261,8 +267,8 @@ void JsonParser::create_packet_appeal_post(partner user)
 {
     QJsonObject json_obj_nickname;
 
-    json_obj_nickname.insert("nickname"           ,      QString(user.user1.user_account));
-    json_obj_nickname.insert("appeal_nickname"    ,      QString(user.user2.user_account));
+    json_obj_nickname.insert("flag"               ,      QString("appeal_ok"));
+    json_obj_nickname.insert("nickname"           ,      QString(user.user2.user_account));
     json_obj_nickname.insert("date"               ,      QString(user.user2.appeal_date));
     json_obj_nickname.insert("time"               ,      QString(user.user2.appeal_time));
     json_obj_nickname.insert("city"               ,      QString(user.user2.appeal_city));
@@ -273,8 +279,8 @@ void JsonParser::create_packet_appeal_post(partner user)
 
     QJsonObject json_obj_appeal_nickname;
 
-    json_obj_appeal_nickname.insert("nickname"           ,      QString(user.user2.user_account));
-    json_obj_appeal_nickname.insert("appeal_nickname"    ,      QString(user.user1.user_account));
+    json_obj_appeal_nickname.insert("flag"               ,      QString("appeal_ok"));
+    json_obj_appeal_nickname.insert("nickname"           ,      QString(user.user1.user_account));
     json_obj_appeal_nickname.insert("date"               ,      QString(user.user1.appeal_date));
     json_obj_appeal_nickname.insert("time"               ,      QString(user.user1.appeal_time));
     json_obj_appeal_nickname.insert("city"               ,      QString(user.user1.appeal_city));
@@ -292,8 +298,8 @@ void JsonParser::create_packet_appeal_post(partner user)
     json_obj_send.insert("flag"                         ,       QString("appeal_ok"));
     json_obj_send.insert("nickname"                     ,       QString(user.user1.user_account));
     json_obj_send.insert("appeal_nickname"              ,       QString(user.user2.user_account));
-    json_obj_send.insert("nickname_flag"                ,       json_array_nickname);
-    json_obj_send.insert("appeal_nicknameflag"          ,       json_array_appeal_nickname);
+    json_obj_send.insert("nickname_flag"                ,       json_array_appeal_nickname);
+    json_obj_send.insert("appeal_nickname_flag"         ,       json_array_nickname);
 
     emit post_message_to_localsocket(json_obj_send);
 }
@@ -310,12 +316,12 @@ void JsonParser::create_packet_touch(partner info)
     emit post_message_to_localsocket(json_obj);
 }
 
-void JsonParser::create_packet_touch_fail(partner user)
+void JsonParser::create_packet_touch_fail(partner user,appeal_info appeal_old)
 {
     QJsonObject json_obj_nickname;
 
-    json_obj_nickname.insert("nickname"           ,      QString(user.user1.user_account));
-    json_obj_nickname.insert("next_nickname"      ,      QString(user.user2.user_account));
+    json_obj_nickname.insert("flag"               ,      QString("next_ok"));
+    json_obj_nickname.insert("nickname"           ,      QString(user.user2.user_account));
     json_obj_nickname.insert("date"               ,      QString(user.user2.appeal_date));
     json_obj_nickname.insert("time"               ,      QString(user.user2.appeal_time));
     json_obj_nickname.insert("city"               ,      QString(user.user2.appeal_city));
@@ -326,8 +332,8 @@ void JsonParser::create_packet_touch_fail(partner user)
 
     QJsonObject json_obj_next_nickname;
 
-    json_obj_next_nickname.insert("nickname"           ,      QString(user.user2.user_account));
-    json_obj_next_nickname.insert("next_nickname"      ,      QString(user.user1.user_account));
+    json_obj_next_nickname.insert("flag"               ,      QString("appeal_ok"));
+    json_obj_next_nickname.insert("nickname"           ,      QString(user.user1.user_account));
     json_obj_next_nickname.insert("date"               ,      QString(user.user1.appeal_date));
     json_obj_next_nickname.insert("time"               ,      QString(user.user1.appeal_time));
     json_obj_next_nickname.insert("city"               ,      QString(user.user1.appeal_city));
@@ -338,25 +344,32 @@ void JsonParser::create_packet_touch_fail(partner user)
 
     QJsonArray json_array_nickname;
     QJsonArray json_array_next_nickname;
+    QJsonArray json_array_b;
+
+    QJsonObject json_obj_b;
+    json_obj_b.insert("nickname"                        ,     QString(appeal_old.user_account));
+    json_obj_b.insert("flag"                            ,     QString("next_fail"));
     json_array_nickname.insert(0,json_obj_nickname);
     json_array_next_nickname.insert(0,json_obj_next_nickname);
 
+
     QJsonObject json_obj_send;
-    json_obj_send.insert("flag"                         ,       QString("next_ok"));
-    json_obj_send.insert("nickname"                     ,       QString(user.user1.user_account));
-    json_obj_send.insert("next_nickname"                ,       QString(user.user2.user_account));
-    json_obj_send.insert("nickname_flag"                ,       json_array_nickname);
-    json_obj_send.insert("appeal_nicknameflag"          ,       json_array_next_nickname);
+    json_obj_send.insert("flag"                         ,       QString("next_fail"));
+    json_obj_send.insert("nickname_a"                   ,       QString(user.user1.user_account));
+    json_obj_send.insert("nickname_c"                   ,       QString(user.user2.user_account));
+    json_obj_send.insert("nickname"                     ,       QString(appeal_old.user_account));
+    json_obj_send.insert("nickname_flag"                ,       json_array_next_nickname);
+    json_obj_send.insert("nickname_c_flag"              ,       json_array_nickname);
 
     emit post_message_to_localsocket(json_obj_send);
 }
 
-//数据包生成：碰巧反馈
+//数据包生成：碰巧反馈 废弃
 void JsonParser::create_packet_happen(partner info)
 {
     QJsonObject json_obj;
 
-    json_obj.insert("flag"              ,   QString("happen_ok"));
+    json_obj.insert("flag"              ,   QString("happened_ok"));
     json_obj.insert("nickname"          ,   QString(info.user1.user_account));
     json_obj.insert("touch_nickname"    ,   QString(info.user2.user_account));
 
@@ -367,7 +380,7 @@ void JsonParser::create_packet_no_happen(partner info)
 {
     QJsonObject json_obj;
 
-    json_obj.insert("flag"              ,   QString("happen_fail"));
+    json_obj.insert("flag"              ,   QString("happened_fail"));
     json_obj.insert("nickname"          ,   QString(info.user1.user_account));
     json_obj.insert("touch_nickname"    ,   QString(info.user2.user_account));
 
@@ -379,20 +392,32 @@ void JsonParser::create_packet_information(partner info)
 {
     QJsonObject json_obj;
 
-    json_obj.insert("flag"              ,   QString("userinfo_ok"));
-    json_obj.insert("nickname"          ,   QString(info.user1.user_account));
-    json_obj.insert("touch_nickname"    ,   QString(info.user2.user_account));
-    json_obj.insert("touch_phone"       ,   QString(info.user2.user_information.user_phonenumber));
+    json_obj.insert("flag"                           ,   QString("happened_ok"));
+    json_obj.insert("nickname"                       ,   QString(info.user1.user_account));
+    json_obj.insert("happened_nickname"              ,   QString(info.user2.user_account));
+    json_obj.insert("happened_phone"                 ,   QString(info.user2.user_information.user_phonenumber));
 
     QJsonObject json_obj_partner;
 
-    json_obj_partner.insert("flag"              ,   QString("userinfo_ok"));
-    json_obj_partner.insert("nickname"          ,   QString(info.user2.user_account));
-    json_obj_partner.insert("touch_nickname"    ,   QString(info.user1.user_account));
-    json_obj_partner.insert("touch_phone"       ,   QString(info.user1.user_information.user_phonenumber));
+    json_obj_partner.insert("flag"                   ,   QString("happened_ok"));
+    json_obj_partner.insert("nickname"               ,   QString(info.user2.user_account));
+    json_obj_partner.insert("happened_nickname"      ,   QString(info.user1.user_account));
+    json_obj_partner.insert("happened_phone"         ,   QString(info.user1.user_information.user_phonenumber));
 
-    emit post_message_to_localsocket(json_obj);
-    emit post_message_to_localsocket(json_obj_partner);
+    QJsonArray json_array;
+    QJsonArray json_array_partner;
+
+    json_array.insert(0,json_obj);
+    json_array_partner.insert(0,json_obj_partner);
+
+    QJsonObject json_send;
+    json_send.insert("flag"                     ,   QString("happened_ok"));
+    json_send.insert("nickname"                 ,   QString(info.user1.user_account));
+    json_send.insert("happend_nickname"         ,   QString(info.user2.user_account));
+    json_send.insert("nickname_flag"            ,   json_array);
+    json_send.insert("happened"                 ,   json_array_partner);
+
+    emit post_message_to_localsocket(json_send);
 }
 //数据包生成：接收自己信息
 void JsonParser::create_packet_personal_information(user_info info)
@@ -401,13 +426,12 @@ void JsonParser::create_packet_personal_information(user_info info)
 
     json_obj.insert("flag"              ,   QString("userinfo_ok"));
     json_obj.insert("nickname"          ,   QString(info.user_account));
-    json_obj.insert("touch_nickname"    ,   QString(info.user_account));
-    json_obj.insert("touch_phone"       ,   QString(info.user_phonenumber));
+    json_obj.insert("phone"             ,   QString(info.user_phonenumber));
 
     emit post_message_to_localsocket(json_obj);
 }
 
-//数据包生成：允许聊天
+//数据包生成：允许聊天    废弃
 void JsonParser::create_packet_start_chat(partner user)
 {
     QJsonObject json_obj;

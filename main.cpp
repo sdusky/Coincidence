@@ -76,6 +76,9 @@ int main(int argc, char *argv[])
     QObject::connect(&json_parser,SIGNAL(appeal_next_to_mysqlconnector(appeal_info)),
                      &mysql_connector,SLOT(get_appeal_next_from_jsonparser(appeal_info)));
 
+    QObject::connect(&json_parser,SIGNAL(appeal_issue_cancle_to_mysqlconnector(appeal_info)),
+                     &mysql_connector,SLOT(get_appeal_cancel_from_jsonparser(appeal_info)));
+
     //                                  用户碰一下
     QObject::connect(&json_parser,SIGNAL(touch_to_happen_to_mysqlconnector(partner)),
                      &mysql_connector,SLOT(get_touch_to_happen_from_jsonparser(partner)));
@@ -104,15 +107,15 @@ int main(int argc, char *argv[])
                      &json_parser,SLOT(create_packet_touch(partner)));
 
     //                                  下一个反馈
-    QObject::connect(&mysql_connector,SIGNAL(touch_no_happen_to_jsonparser(partner)),
-                     &json_parser,SLOT(create_packet_touch_fail(partner)));
+    QObject::connect(&mysql_connector,SIGNAL(touch_no_happen_to_jsonparser(partner,appeal_info)),
+                     &json_parser,SLOT(create_packet_touch_fail(partner,appeal_info)));
 
     //                                  不巧推送
     QObject::connect(&mysql_connector,SIGNAL(appeal_no_happen(partner)),
                      &json_parser,SLOT(create_packet_no_happen(partner)));
-    //                                  聊天推送
-    QObject::connect(&mysql_connector,SIGNAL(chat_start_signal(partner)),
-                     &json_parser,SLOT(create_packet_start_chat(partner)));
+//    //                                  聊天推送
+//    QObject::connect(&mysql_connector,SIGNAL(chat_start_signal(partner)),
+//                     &json_parser,SLOT(create_packet_start_chat(partner)));
     //                                  碰巧推送，推送信息
     QObject::connect(&mysql_connector,SIGNAL(appeal_happen(partner)),
                      &json_parser,SLOT(create_packet_information(partner)));

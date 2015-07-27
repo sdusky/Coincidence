@@ -30,11 +30,13 @@ private:
     //诉求信息处理
     void appeal_issue(QJsonObject);                                     //发布
     void appeal_next(QJsonObject);                                      //推送需求，下一个
+    void appeal_delete(QJsonObject);                                    //取消诉求
 
     //碰巧or不巧
     void appeal_happen(QJsonObject);                                    //碰巧
     void appeal_no_happen(QJsonObject);                                 //不巧
     void touch_to_happen(QJsonObject);                                  //碰一下
+
 
     //json信息解析
     void get_user_info(user_info *info,QJsonObject json_obj);           //用户信息解析
@@ -57,6 +59,8 @@ signals:
 
     void user_information_to_mysqlconnector(user_info);                 //向数据库传递信号：请求名片
 
+    void appeal_issue_cancle_to_mysqlconnector(appeal_info);            //向数据库传递信号：
+
     //下行信号
     void post_message_to_localsocket(QJsonObject);
 
@@ -71,12 +75,12 @@ public slots:
     void create_packet_appeal_fail(QByteArray);                         //数据包生成：发布失败
     void create_packet_appeal_post(partner);                            //数据包生成：诉求推送
     void create_packet_touch(partner);                                  //数据包生成：碰一下反馈
-    void create_packet_touch_fail(partner);                             //数据包生成：下一个反馈
+    void create_packet_touch_fail(partner,appeal_info);                 //数据包生成：下一个反馈
     void create_packet_no_happen(partner);                              //数据包生成：不巧反馈
     void create_packet_happen(partner);                                 //数据包生成：碰巧反馈
     void create_packet_information(partner);                            //数据包生成：互发名片
     void create_packet_personal_information(user_info);                 //数据包生成：发送个人信息
-    void create_packet_start_chat(partner);                             //数据包生成：允许聊天
+    void create_packet_start_chat(partner);                             //数据包生成：允许聊天 废弃
 };
 
 #endif // JSONPARSER_H

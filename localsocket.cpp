@@ -1,4 +1,5 @@
 #include "localsocket.h"
+#include <windows.h>
 
 LocalSocket::LocalSocket(QObject *parent) :
     QTcpSocket(parent)
@@ -16,6 +17,10 @@ void LocalSocket::get_message_from_server()
     QByteArray msg;
 
     msg = this->readAll();
+#if DEBUG
+    qDebug()<<"Receive from server";
+    qDebug()<<msg;
+#endif
     emit post_message_to_jsonparser(msg);
 }
 
@@ -25,8 +30,17 @@ void LocalSocket::get_message_from_jsonparser(QJsonObject json_obj)
 
     json_doc.setObject(json_obj);
     QByteArray msg_to_server = json_doc.toJson(QJsonDocument::Compact);
-
+#if DEBUG
+    qDebug()<<"Send to server";
+    qDebug()<<msg_to_server;
+#endif
+    //SLEEP
+//    QTime t;
+//    t.start();
+//    while(t.elapsed()<1000)
+//        QCoreApplication::processEvents();
     this->write(msg_to_server);
+
 }
 
 void LocalSocket::catch_server_close_signal()
